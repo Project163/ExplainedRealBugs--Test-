@@ -3,6 +3,7 @@ import json
 import argparse
 from bs4 import BeautifulSoup
 import re
+import random
 
 # ==========================================
 # Configuration & Constants
@@ -210,7 +211,10 @@ def format_for_llm(title, description, comments):
         
     return llm_text
 
-def main(bug_mining_root, output_file):
+def main(bug_mining_root, output_file, sample_limit=None, sample_method='random'):
+    """
+    sample_method: 'random' (随机抽取) 或 'head' (直接截取前N个)
+    """
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     processed_count = 0
     with open(output_file, 'w', encoding='utf-8') as f_out:
@@ -220,7 +224,7 @@ def main(bug_mining_root, output_file):
             reports_dir = os.path.join(project_dir, 'reports')
             if not os.path.isdir(reports_dir):
                 continue
-            print(f"--- Processing Project: {project_id} ---")
+            
             files = os.listdir(reports_dir)
             report_files = {} 
             for file in files:
@@ -237,7 +241,26 @@ def main(bug_mining_root, output_file):
                     report_files[bug_id]['report'] = os.path.join(reports_dir, file)
                     report_files[bug_id]['ext'] = ext
 
-            for bug_id in sorted(report_files.keys(), key=int):
+            bug_ids = sorted(report_files.keys(), key=int)
+            
+            # --- 测试模式逻辑 ---
+            if sample_limit and sample_limit > 0:
+                original_count = len(bug_ids)
+                sample_count = min(original_count, sample_limit)
+                
+                if sample_method == 'head':
+                    # 模式1：直接截取前30个 (Head) - 保证每次运行结果一致
+                    bug_ids = bug_ids[:sample_count]
+                    print(f"--- Processing Project: {project_id} (Head Sampling {sample_count}/{original_count}) ---")
+                else:
+                    # 模式2：随机采样 (Random) - 默认
+                    bug_ids = sorted(random.sample(bug_ids, sample_count), key=int)
+                    print(f"--- Processing Project: {project_id} (Random Sampling {sample_count}/{original_count}) ---")
+            else:
+                print(f"--- Processing Project: {project_id} ---")
+            # ------------------------
+
+            for bug_id in bug_ids:
                 paths = report_files[bug_id]
                 if not paths['report']: continue
                 llm_input_text = None
@@ -283,6 +306,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse bug reports into a clean JSONL format for LLM classification.")
     parser.add_argument('-i', '--input_dir', default=DEFAULT_BUG_MINING_DIR)
     parser.add_argument('-o', '--output_file', default=DEFAULT_OUTPUT_FILE)
+    
+    # 互斥组：确保不同时指定 --test 和 --test-head
+    test_group = parser.add_mutually_exclusive_group()
+    test_group.add_argument('--test', action='store_true', help="Randomly sample 30 reports per project")
+    test_group.add_argument('--test-head', action='store_true', help="Take the FIRST 30 reports per project (deterministic)")
+    
     args = parser.parse_args()
 
-    main(args.input_dir, args.output_file)
+    # 测试模式输出文件（共用同一个测试文件，方便 classify 脚本直接读取）
+    TEST_OUTPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug_classification', 'parsed_data_test_sample.jsonl'))
+
+    if args.test:
+        print(f"*** RUNNING IN RANDOM TEST MODE ***")
+        print(f"Output: {TEST_OUTPUT_FILE}")
+        main(args.input_dir, TEST_OUTPUT_FILE, sample_limit=30, sample_method='random')
+    elif args.test_head:
+        print(f"*** RUNNING IN HEAD TEST MODE (First 30) ***")
+        print(f"Output: {TEST_OUTPUT_FILE}")
+        main(args.input_dir, TEST_OUTPUT_FILE, sample_limit=30, sample_method='head')
+    else:
+        # 正常全量跑
+        main(args.input_dir, args.output_file)

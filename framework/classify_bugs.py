@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import re
 from openai import OpenAI
 from concurrent.futures import ThreadPoolExecutor
 
@@ -8,11 +9,12 @@ from concurrent.futures import ThreadPoolExecutor
 # API Key
 api_key = os.getenv("SILICONCLOUD_API_KEY")
 if not api_key:
-    raise ValueError("Please set the 'SILICONCLOUD_API_KEY' environment variable")
+    print("Warning: 'SILICONCLOUD_API_KEY' environment variable is not set.")
+    # raise ValueError("Please set the 'SILICONCLOUD_API_KEY' environment variable")
 
 # Initialize OpenAI client pointing to Qwen's compatible API
 client = OpenAI(
-    api_key=api_key,
+    api_key=api_key if api_key else "dummy_key", # 防止初始化报错，实际调用会失败如果key无效
     base_url="https://api.siliconflow.cn/v1",
 )
 
@@ -45,121 +47,61 @@ DEFAULT_LABELS = [
     "Other"
 ]
 
-# DEFAULT_LABELS = [
-#     # 1. Assignment (赋值/初始化)
-#     "Assignment/Initialization", # 变量/对象未初始化或初始值错误
-#     "Assignment/Value",          # 简单的赋值错误（非算法计算）
-
-#     # 2. Checking (检查/校验)
-#     "Checking/Validation",       # 数据合法性检查缺失或错误 (Input, Null Check)
-#     "Checking/LoopCondition",    # 循环边界或条件分支逻辑错误 (If/While)
-
-#     # 3. Algorithm (算法/逻辑)
-#     "Algorithm/Calculation",     # 数学公式、位运算或复杂逻辑推导错误
-#     "Algorithm/Efficiency",      # 算法复杂度过高、性能问题
-
-#     # 4. Interface (接口/交互)
-#     "Interface/Parameter",       # 函数调用参数错误 (类型、顺序、缺失)
-#     "Interface/Protocol",        # 系统间通信协议、I/O 格式或 API 契约错误
-
-#     # 5. Timing/Serialization (时序/序列化)
-#     "Timing/RaceCondition",      # 竞态条件、线程冲突
-#     "Timing/Resource",           # 锁机制、死锁或资源生命周期管理
-
-#     # 6. Build/Package/Merge (构建/打包)
-#     "Build/Configuration",       # 配置文件、环境变量错误
-#     "Build/Dependency",          # 依赖库版本冲突或缺失
-
-#     # 7. Documentation (文档)
-#     "Documentation/Content",     # 文档内容错误或误导
-#     "Documentation/Missing",     # 缺少必要的文档或注释
-
-#     # 8. Function (功能/宏观)
-#     "Function/LogicFlow",        # 宏观业务流程错误 (无法归类为单行错误)
-    
-#     "Other"
-# ]
-
 LABELS_STRING = "\n".join(DEFAULT_LABELS)
 
 # Input and output files
-INPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug_classification', 'parsed_data.jsonl'))
-OUTPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug_classification', 'classified_data_llm.jsonl'))
+# 使用相对路径，确保在不同目录下运行时的稳健性
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INPUT_FILE = os.path.join(BASE_DIR, '..', 'bug_classification', 'parsed_data_test_sample.jsonl')
+OUTPUT_FILE = os.path.join(BASE_DIR, '..', 'bug_classification', 'classified_data_llm.jsonl')
 
 # Concurrency settings
 MAX_WORKERS = 10  # Adjust according to API limits
 REQUEST_DELAY = 0.1
 
 # 2. System Prompt
+# 修改提示词，强制要求 JSON 输出包含置信度
 SYSTEM_PROMPT = f"""
 You are an expert software engineer specializing in bug triaging and classification.
-Your task is to classify bug reports into one of the following categories based on their content:
+Your task is to classify bug reports into one of the following categories based on their content.
+
+Categories:
 {LABELS_STRING}
+
 Instructions:
 1. Analyze the 'Title' and 'Description' of the bug report.
-2. Determine the *root cause* or the *nature* of the defect, not just the symptom.
+2. Determine the *root cause* or the *nature* of the defect.
 3. Select EXACTLY ONE category from the list above.
-4. If the bug is a generic crash/freeze without a clear cause, look for clues about "Checking" (null pointer) or "Resource" (memory).
-5. Output ONLY the category name exactly as listed. Do not add explanations.
+4. **Confidence Calibration (CRITICAL)**:
+   - **0.9 - 1.0 (Certain)**: The report explicitly states the root cause using standard terminology (e.g., "race condition", "buffer overflow") that perfectly matches the category.
+   - **0.7 - 0.8 (Likely)**: You are reasonably sure based on symptoms, but the exact root cause is inferred. **Most clear bug reports should fall here.**
+   - **0.4 - 0.6 (Uncertain)**: The description is vague, lacks logs, or the bug could plausibly fit into 2+ categories.
+   - **< 0.4 (Guessing)**: The report is completely ambiguous (e.g., "it crashed").
+   - **Avoid Artificial High Confidence**: Do not default to 0.95+ unless it is a textbook example. Be conservative.
+5. **Output Format**: Output the result in STRICT JSON format using the keys "confidence" and "category". Do not add any markdown formatting (like ```json).
 
 Examples:
 Bug Report: "User can access admin panel without logging in."
-Classification: Function :: Access Control (CWE-284)
+Response: {{"confidence": 0.95, "category": "Function :: Access Control (CWE-284)"}}
 
 Bug Report: "The app crashes with NullPointerException when username is empty."
-Classification: Checking :: Missing Check (CWE-754)
+Response: {{"confidence": 0.98, "category": "Checking :: Missing Check (CWE-754)"}}
 
 Bug Report: "Sorting a large list causes the UI to freeze forever."
-Classification: Algorithm :: Complexity/Resource (CWE-400)
+Response: {{"confidence": 0.75, "category": "Algorithm :: Resource/Memory Leak (CWE-400)"}}
+
+Bug Report: "Application behaves weirdly after restart."
+Response: {{"confidence": 0.4, "category": "Other"}}
 
 Bug Report: "Typo in the help message."
-Classification: Documentation :: Wrong Comments (CWE-1116)
+Response: {{"confidence": 0.99, "category": "Documentation :: Wrong Comments (CWE-1116)"}}
 """
-
-# SYSTEM_PROMPT = f"""
-# You are an expert in IBM Orthogonal Defect Classification (ODC).
-# Your task is to classify software defects based on the *nature of the fix* and the *root cause*.
-
-# The taxonomy is STRICTLY hierarchical (Level 1 / Level 2):
-# {LABELS_STRING}
-
-# Classification Rules:
-# 1. **Assignment**: The fix involves changing a value assignment or initialization.
-#    - Use 'Initialization' if a variable was used before being set.
-#    - Use 'Value' for simple wrong scalars/strings.
-# 2. **Checking**: The fix involves validation logic.
-#    - Use 'Validation' for missing null checks, input sanitization, or boundary guards.
-#    - Use 'LoopCondition' for errors in 'if', 'while', or 'for' logic expressions.
-# 3. **Algorithm**: The fix involves transforming data or complex calculations.
-#    - Use 'Efficiency' for performance optimizations.
-# 4. **Interface**: The fix involves function calls or external communication.
-#    - Use 'Parameter' for wrong arguments passed to a function.
-#    - Use 'Protocol' for API mismatches or file format errors.
-# 5. **Timing**: The fix involves concurrency or shared resources.
-# 6. **Build**: The fix is in config files, makefiles, or dependencies (not source code).
-
-# Instructions:
-# - Analyze the Bug Report carefully.
-# - Think: "What type of code needs to be written to fix this?"
-# - Output ONLY the exact label from the list above.
-
-# Example 1:
-# Bug: "Application crashes because 'user_id' can be null."
-# Classification: Checking/Validation
-
-# Example 2:
-# Bug: "The loop runs one extra time causing index out of bounds."
-# Classification: Checking/LoopCondition
-
-# Example 3:
-# Bug: "Sorting takes too long on large arrays."
-# Classification: Algorithm/Efficiency
-# """
 
 # 3. API Call Function
 def get_bug_classification(bug_text):
     """
-    Call API to classify a single bug text.
+    Call API to classify a single bug text and get confidence.
+    Returns: tuple (confidence, label)
     """
     try:
         completion = client.chat.completions.create(
@@ -168,29 +110,53 @@ def get_bug_classification(bug_text):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": bug_text}
             ],
-            temperature=0,
+            temperature=0, # Low temperature for consistent JSON output
+            response_format={"type": "json_object"} # 尝试启用 JSON 模式（如果模型支持）
         )
         
-        # Extract the raw label returned by the model
-        raw_label = completion.choices[0].message.content.strip()
+        raw_content = completion.choices[0].message.content.strip()
         
+        # Parse JSON output
+        try:
+            result = json.loads(raw_content)
+            confidence = result.get("confidence", 0.0)
+            label = result.get("category", "Other")
+        except json.JSONDecodeError:
+            # Fallback: Try regex if JSON parsing fails (e.g. if model wrapped in markdown code blocks)
+            # Look for "confidence": <number> and "category": "<string>"
+            conf_match = re.search(r'"confidence":\s*([0-9.]+)', raw_content)
+            cat_match = re.search(r'"category":\s*"([^"]+)"', raw_content)
+            
+            confidence = float(conf_match.group(1)) if conf_match else 0.0
+            label = cat_match.group(1) if cat_match else raw_content # Fallback to raw text if very broken
+
         # Validate if the returned label is in our list
-        if raw_label in DEFAULT_LABELS:
-            return raw_label
+        # Remove extra whitespace or quotes if regex failed slightly
+        label = label.strip()
+        
+        final_label = "Other"
+        if label in DEFAULT_LABELS:
+            final_label = label
         else:
-            for label in DEFAULT_LABELS:
-                if label in raw_label:
-                    return label
-            return "Other"
+            # Fuzzy match attempt
+            for d_label in DEFAULT_LABELS:
+                if d_label in label:
+                    final_label = d_label
+                    break
+        
+        return confidence, final_label
             
     except Exception as e:
         print(f"[Error]: API call failed: {e}")
-        return "Error"
+        return 0.0, "Error"
 
 
 # 4. Main Processing Logic
 def process_bug_file():
     print(f"Processing {INPUT_FILE}...")
+    
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
     
     try:
         with open(INPUT_FILE, 'r', encoding='utf-8') as infile:
@@ -209,6 +175,9 @@ def process_bug_file():
         # 1. Submit all tasks
         for i, line in enumerate(lines):
             try:
+                line = line.strip()
+                if not line: continue
+                
                 data = json.loads(line)
                 bug_text = data.get("llm_input_text")
                 
@@ -222,19 +191,24 @@ def process_bug_file():
                 print(f"Line {i+1} JSON decode error, skipping.")
 
         print("All tasks submitted, waiting for results and writing in order...")
+        
         # 2. Retrieve results in order and write
-        # The key here is to iterate over the `tasks` list we created, rather than using as_completed
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as outfile:
             processed_count = 0
             
             for original_data, future in tasks:
-                predicted_label = future.result()
+                # Get result from future
+                confidence, predicted_label = future.result()
 
+                # Construct new data dict
+                # Python 3.7+ dicts preserve insertion order. 
+                # We insert 'confidence' before 'label'.
                 new_data = {
                     "project_id": original_data.get("project_id"),
                     "bug_id": original_data.get("bug_id"),
                     "source_type": original_data.get("source_type"),
-                    "label": predicted_label,
+                    "confidence": confidence,  # <--- 置信度在前
+                    "label": predicted_label,  # <--- 分类在后
                     "llm_input_text": original_data.get("llm_input_text")
                 }
                 
