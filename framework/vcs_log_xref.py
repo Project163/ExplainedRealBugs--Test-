@@ -12,7 +12,7 @@ import config
 
 def get_git_parent(commit_hash, repo_dir):
     """
-    获取一个 commit 的父 commit。只支持单个父 commit。
+    Acquire the parent commit hash of the given commit using 'git rev-list --parents -n 1'.
     """
     try:
         # changed to use a list for cmd to avoid shell=True issues
@@ -57,7 +57,7 @@ def get_git_parent(commit_hash, repo_dir):
 
 def construct_commit_url(repo_url, commit_hash):
     """
-    根据仓库URL和commit hash构建一个可访问的URL。
+    Construct a navigable URL for a commit based on the repository URL and commit hash.
     """
     if not repo_url or not commit_hash:
         return "NA"
@@ -76,7 +76,7 @@ def construct_commit_url(repo_url, commit_hash):
 
 def construct_compare_url(repo_url, buggy_hash, fixed_hash):
     """
-    根据仓库URL和两个commit hash构建一个 diff 比较 URL。
+    Construct a navigable URL for comparing two commits based on the repository URL and commit hashes.
     """
     if not repo_url or not buggy_hash or not fixed_hash:
         return "NA"

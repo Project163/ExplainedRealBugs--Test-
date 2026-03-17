@@ -1,0 +1,8 @@
+TensorFlow	tensorflow	https://github.com/tensorflow/tensorflow.git	github	tensorflow/tensorflow	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+VSCode	vscode	https://github.com/microsoft/vscode.git	github	microsoft/vscode	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+ReactNative	react-native	https://github.com/facebook/react-native.git	github	facebook/react-native	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+Angular	angular	https://github.com/angular/angular.git	github	angular/angular	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+Node	node	https://github.com/nodejs/node.git	github	nodejs/node	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+Scikit-learn	scikit-learn	https://github.com/scikit-learn/scikit-learn.git	github	scikit-learn/scikit-learn	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+PyTorch	pytorch	https://github.com/pytorch/pytorch.git	github	pytorch/pytorch	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.
+Celery	celery	https://github.com/celery/celery.git	github	celery/celery	/(?:fix|fixes|closes|addresses|resolves) (?:bug|issue)? ?#(\\d+)/mi	.

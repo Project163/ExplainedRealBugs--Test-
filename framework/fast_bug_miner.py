@@ -25,8 +25,8 @@ class Tee(object):
 
 def process_project(project_id, project_name, repository_url, issue_tracker_name, issue_tracker_project_id, bug_fix_regex, sub_project_path, tracker_base_url=None):
     """
-    处理单个项目的完整挖掘流程。
-    如果成功，返回 True；如果任何关键步骤失败，返回 False。
+    Process a single project: clone repo, download issues, cross-reference, generate patches, and download reports.
+    Returns True on success, False on failure.
     """
     PYTHON_EXECUTABLE = sys.executable
 
@@ -129,7 +129,7 @@ def process_project(project_id, project_name, repository_url, issue_tracker_name
 
         cmd_xref_list = []
         
-        # --- 分支逻辑：GitHub 使用 LLM，其他使用 Regex ---
+        # For GitHub projects, we use the new LLM-based cross-referencing script that can leverage issue content and discussion for better matching.
         if issue_tracker_name == 'github':
             print(f"Using LLM cross-referencing for GitHub project {project_id}...")
             cmd_xref_list = [
@@ -147,8 +147,8 @@ def process_project(project_id, project_name, repository_url, issue_tracker_name
             print(f"Regex for bug-fixing commits: {bug_fix_regex!r}")
             cmd_xref_list = [
                 PYTHON_EXECUTABLE,
-                os.path.join(config.SCRIPT_DIR, 'vcs_log_xref.py'), # <-- 旧脚本
-                '-e', bug_fix_regex, # <-- 传统 regex
+                os.path.join(config.SCRIPT_DIR, 'vcs_log_xref.py'),
+                '-e', bug_fix_regex,
                 '-l', cache_gitlog_file,
                 '-r', cache_repo_dir,
                 '-i', cache_issues_file,
@@ -222,7 +222,7 @@ def process_project(project_id, project_name, repository_url, issue_tracker_name
                                 data = json.load(f)
 
                             if 'api.github.com' in data.get('url', ''):
-                                timeline_url = data.get('timeline_url') # 获取 timeline_url
+                                timeline_url = data.get('timeline_url')
                                 # print(f"  -> Found timeline URL in GitHub API response: {timeline_url}")
                                 
                         except json.JSONDecodeError:
@@ -258,7 +258,7 @@ def process_project(project_id, project_name, repository_url, issue_tracker_name
                 ]
                 
                 git_env = os.environ.copy()
-                git_env['GIT_TERMINAL_PROMPT'] = '0'  # Disable git prompts
+                git_env['GIT_TERMINAL_PROMPT'] = '0'
                 
                 try:
                     result = subprocess.run(
@@ -307,7 +307,7 @@ def main():
         with open(ERROR_LOG_FILE, 'w', encoding='utf-8') as error_log:
             sys.stderr = Tee(original_stderr, error_log)
             
-            input_file = os.path.join(config.SCRIPT_DIR, 'example_github.txt')
+            input_file = os.path.join(config.SCRIPT_DIR, 'example.txt')
             
             if not os.path.exists(input_file):
                 print(f"Error: Input file not found at {input_file}", file=sys.stderr)

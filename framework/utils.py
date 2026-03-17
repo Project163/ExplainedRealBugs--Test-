@@ -17,7 +17,7 @@ _session = None
 
 def get_http_session():
     """
-    初始化并返回一个带有重试机制的 HTTP 会话。
+    Initialize and return a global HTTP session with retry logic.
     """
     global _session
     if _session is None:
@@ -31,7 +31,7 @@ def get_http_session():
 
 def download_report_data(uri, save_to, tracker_base_url=None):
     """
-    从指定的 URI 下载报告数据并保存到本地文件。
+    Download report data from the specified URI and save it to a local file.
     """
     session = get_http_session()
     headers = {}
@@ -138,10 +138,6 @@ def download_report_data(uri, save_to, tracker_base_url=None):
 
 
 def exec_cmd(cmd_list, desc, output_file=None):
-    """
-    (!!) cmd_list 现在必须是一个列表 (e.g., ['git', 'log'])
-    (!!) 添加了 output_file 参数用于重定向 stdout
-    """
     
     print(f"{desc:.<75} ", end="", flush=True, file=sys.stderr)
     
@@ -230,7 +226,7 @@ def exec_cmd(cmd_list, desc, output_file=None):
 
 def read_config_file(file_path, key_separator=','):
     """
-    读取配置文件，返回键值对字典。
+    Read a simple key-value configuration file and return a dictionary of the configurations.
     """
     config_data = {}
     if not os.path.exists(file_path):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# framework/step2_clean_and_format.py
+# framework/clean_report.py (Refactored for Agentic Workflow)
 
 import os
 import json
@@ -10,12 +10,13 @@ import re
 # Configuration & Constants 
 # ==========================================
 
-# Noise filtering heuristics for comments (can be expanded based on observed data)
+# 社交噪音/无意义短语 (Stop Phrases)
 LOW_VALUE_PHRASES = [
     "thanks", "thank you", "thx", "lgtm", "+1", "bump", 
     "great work", "awesome", "sent from my", "dupe", "duplicate"
 ]
 
+# 高价值关键词 (确保包含诊断价值的短句不被误删)
 HIGH_VALUE_KEYWORDS = [
     "fix", "patch", "bisect", "regression", "workaround", 
     "repro", "crash", "panic", "segfault", "assert", 
@@ -25,7 +26,7 @@ HIGH_VALUE_KEYWORDS = [
 class TextCleaner:
     @staticmethod
     def normalize_technical_data(text):
-        """Normalize technical data by replacing high-entropy strings with generic placeholders"""
+        """归一化技术数据，将高熵字符串替换为通用占位符，降低 Token 噪声"""
         if not text: return ""
         text = re.sub(r'\b0x[0-9a-fA-F]{4,}\b', '<PTR>', text)
         text = re.sub(r'\b[0-9a-fA-F]{16,}\b', '<HASH>', text)
@@ -34,7 +35,7 @@ class TextCleaner:
 
     @staticmethod
     def simplify_links(text):
-        """Simplify links and images"""
+        """简化 markdown 链接和图片"""
         if not text: return ""
         def img_repl(match):
             alt = match.group(1).strip()
@@ -43,7 +44,6 @@ class TextCleaner:
 
         def link_repl(match):
             anchor_text = match.group(1).strip()
-            url = match.group(2).strip()
             if anchor_text.startswith('http') and len(anchor_text) > 20:
                 return "[Link]"
             if anchor_text.startswith('#') and len(anchor_text) < 10:
@@ -56,28 +56,32 @@ class TextCleaner:
 
     @staticmethod
     def remove_quotes(text):
-        """Remove quoted text to reduce context redundancy"""
+        """移除引用文本以减少上下文冗余"""
         if not text: return ""
         lines = [line for line in text.split('\n') if not line.strip().startswith('>')]
         return '\n'.join(lines)
 
     @staticmethod
-    def truncate_code_blocks(text, max_lines=8):
-        """Truncate overly long code blocks or logs"""
+    def truncate_code_blocks(text, max_lines=30):
+        """
+        Agent 模式下放宽截断限制：将原先的 8 行放宽至 30 行，
+        以保留关键的 Stack Trace 堆栈和错误日志供 Agent 分析。
+        """
         if not text: return ""
         def replacement(match):
             content = match.group(1)
             lines = content.strip().split('\n')
             if len(lines) > max_lines:
-                head = '\n'.join(lines[:5]) 
-                tail = '\n'.join(lines[-2:])
-                return f"```\n{head}\n... [Log Snipped] ...\n{tail}\n```"
+                # 保留头 15 行，尾 10 行
+                head = '\n'.join(lines[:15]) 
+                tail = '\n'.join(lines[-10:])
+                return f"```\n{head}\n... [Long Log/Code Snipped] ...\n{tail}\n```"
             return match.group(0)
         return re.sub(r'```(.*?)```', replacement, text, flags=re.DOTALL)
 
     @staticmethod
     def clean(text):
-        """All-in-one cleaning function that applies all transformations"""
+        """流水线式文本清洗"""
         if not text: return ""
         text = TextCleaner.truncate_code_blocks(text)
         text = TextCleaner.remove_quotes(text)
@@ -88,54 +92,13 @@ class TextCleaner:
         return text.strip()
 
 def is_useful_comment(text):
-    """Heuristic filter: Determine if the cleaned text is valuable for LLM classification"""
+    """启发式过滤器：判断清洗后的文本是否具有保留价值"""
     clean_t = text.lower().strip()
     if any(kw in clean_t for kw in HIGH_VALUE_KEYWORDS):
         return True
     if len(clean_t) < 60 and any(p in clean_t for p in LOW_VALUE_PHRASES):
         return False
     return len(clean_t) > 20
-
-# ==========================================
-# Formatting Logic
-# ==========================================
-
-def format_for_llm(title, description, comments_list):
-    """
-    Construct the LLM input text in a structured format.
-    The format includes:
-    - Title: The cleaned title of the bug report.
-    - Symptom: The cleaned description of the bug report.
-    - Context/Logs: A curated list of cleaned comments that provide additional context, with author information included. If there are more than 4 comments, we will keep the first 2 and the last 2, and insert a marker to indicate that the middle part has been snipped for brevity.
-    """
-    # Truncate the description if it's too long
-    if len(description) > 2000:
-        description = description[:2000] + "\n...[Description Truncated]..."
-        
-    llm_text = f"[Title]: {title}\n"
-    llm_text += f"[Symptom]:\n{description}\n"
-    
-    if comments_list:
-        if len(comments_list) > 4:
-            head = comments_list[:2]
-            tail = comments_list[-2:]
-            
-            # Use a clear marker to indicate that the middle part has been snipped for brevity, which can help the LLM understand that there are more comments that are not shown.
-            selected_comments = head + ["... [Middle Discussions Snipped for Brevity] ..."] + tail
-        else:
-            selected_comments = comments_list
-
-        discussion_text = "\n- ".join(selected_comments)
-        
-        # If the discussion text is still too long, we can further truncate it while keeping the beginning and end intact.
-        if len(discussion_text) > 3000:
-            head_text = discussion_text[:1500]
-            tail_text = discussion_text[-1500:]
-            discussion_text = f"{head_text}\n...[Text Truncated]...\n{tail_text}"
-            
-        llm_text += f"\n[Context/Logs]:\n- {discussion_text}"
-        
-    return llm_text
 
 # ==========================================
 # Main Processing Pipeline
@@ -150,7 +113,7 @@ def main(input_file, output_file):
     processed_count = 0
     skipped_count = 0
 
-    print(f"--- Starting Data Cleaning & Formatting ---")
+    print(f"--- Starting Agentic Data Cleaning & Structuring ---")
     print(f"Reading from: {input_file}")
 
     with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out:
@@ -162,36 +125,42 @@ def main(input_file, output_file):
                 record = json.loads(line)
                 raw_data = record.get("raw_data", {})
                 
-                # 1. Clean Title
+                # 1. 清洗 Title
                 clean_title = TextCleaner.clean(raw_data.get("title", ""))
                 
-                # 2. Clean Description
+                # 2. 清洗 Description (保留完整内容，不做截断)
                 clean_desc = TextCleaner.clean(raw_data.get("description", ""))
                 
-                # 3. Clean and filter Comments, while concatenating Author
+                # 3. 清洗并过滤 Comments，保持列表结构，不拼接
                 clean_comments = []
                 for comment_obj in raw_data.get("comments", []):
                     author = comment_obj.get("author", "Unknown")
                     raw_body = comment_obj.get("body", "")
                     
                     clean_body = TextCleaner.clean(raw_body)
+                    # 保留有价值的评论，并保持结构化
                     if clean_body and is_useful_comment(clean_body):
-                        clean_comments.append(f"[{author}]: {clean_body}")
+                        clean_comments.append({
+                            "author": author,
+                            "body": clean_body
+                        })
                 
-                # 4. If both Title and Description are empty, skip the record
+                # 4. 空数据过滤
                 if not clean_title and not clean_desc and not clean_comments:
                     skipped_count += 1
                     continue
 
-                # 5. Assemble LLM input format
-                llm_input_text = format_for_llm(clean_title, clean_desc, clean_comments)
-                
-                # 6. Generate output record
+                # 5. 构建供 Agent 使用的结构化 payload
+                # 注意：此处不再拼接 llm_input_text，而是封装在 parsed_data 字典中
                 output_record = {
                     "project_id": record.get("project_id"),
                     "bug_id": record.get("bug_id"),
                     "source_type": record.get("source_type"),
-                    "llm_input_text": llm_input_text
+                    "parsed_data": {
+                        "title": clean_title,
+                        "description": clean_desc,
+                        "comments": clean_comments
+                    }
                 }
                 
                 f_out.write(json.dumps(output_record, ensure_ascii=False) + '\n')
@@ -206,17 +175,17 @@ def main(input_file, output_file):
                 print(f"[Error]: Failed processing line {line_num}: {e}")
 
     print(f"\n=================================================")
-    print(f"Data Cleaning & Formatting Complete.")
+    print(f"Agentic Data Structuring Complete.")
     print(f"Processed: {processed_count} reports.")
     print(f"Skipped (Empty after cleaning): {skipped_count}")
     print(f"Output saved to: {output_file}")
     print(f"=================================================")
 
 if __name__ == "__main__":
-    DEFAULT_INPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug_classification', 'extracted_data.jsonl'))
-    DEFAULT_OUTPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug_classification', 'parsed_data.jsonl'))
+    DEFAULT_INPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'bug_classification', 'extracted_data.jsonl'))
+    DEFAULT_OUTPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'bug_classification', 'parsed_data_1.jsonl'))
 
-    parser = argparse.ArgumentParser(description="Step 2 & 3: Clean raw JSONL data and format it for LLM classification.")
+    parser = argparse.ArgumentParser(description="Step 2: Clean raw JSONL data and structure it for Agent APIs.")
     parser.add_argument('-i', '--input_file', default=DEFAULT_INPUT_FILE, help="Path to raw_extracted_data.jsonl")
     parser.add_argument('-o', '--output_file', default=DEFAULT_OUTPUT_FILE, help="Path to parsed_data.jsonl")
     args = parser.parse_args()

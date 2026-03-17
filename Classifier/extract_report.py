@@ -188,7 +188,7 @@ def main(bug_mining_root, output_file):
 
 if __name__ == "__main__":
     DEFAULT_BUG_MINING_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug-mining'))
-    DEFAULT_OUTPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bug_classification', 'extracted_data.jsonl'))
+    DEFAULT_OUTPUT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'bug_classification', 'extracted_data.jsonl'))
 
     parser = argparse.ArgumentParser(description="Step 1: Extract bug reports into a unified, raw JSONL format (with Author).")
     parser.add_argument('-i', '--input_dir', default=DEFAULT_BUG_MINING_DIR)

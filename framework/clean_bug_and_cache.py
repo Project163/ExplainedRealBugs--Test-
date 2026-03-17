@@ -13,8 +13,8 @@ except ImportError:
 
 def safe_remove_directory(path_to_remove):
     """
-    安全地递归删除一个目录。
-    如果目录不存在，则跳过。
+    Remove the specified directory if it exists and is a directory.
+    This function performs safety checks before attempting to remove the directory.
     """
     if not os.path.exists(path_to_remove):
         print(f"  -> Skipping (does not exist): {path_to_remove}")
@@ -78,8 +78,6 @@ def main():
                 issue_tracker_project_id = parts[4]
 
                 print(f"\nCleaning project: {project_id}")
-
-                # --- Construct target paths ---
 
                 # Target 1: bug-mining/<project_id>
                 #

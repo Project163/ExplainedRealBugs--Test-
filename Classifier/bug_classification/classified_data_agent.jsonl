@@ -1,0 +1,50 @@
+{"project_id": "Closure", "bug_id": "8", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "4", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "6", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "9", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "7", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "3", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "5", "source_type": "jira", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "1", "source_type": "jira", "label": ["Interface", "CWE-628: API Misuse"], "turns_used": 3}
+{"project_id": "Alacritty", "bug_id": "2", "source_type": "github", "label": ["Timing/Serialization", "CWE-573: Logic Mismatch"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "7", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "9", "source_type": "jira", "label": ["Function/LogicFlow", "CWE-573: Logic Mismatch"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "3", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "10", "source_type": "github", "label": ["Interface", "CWE-628: API Misuse"], "turns_used": 3}
+{"project_id": "Alacritty", "bug_id": "10", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "2", "source_type": "jira", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "5", "source_type": "github", "label": ["Interface", "CWE-16: Configuration"], "turns_used": 3}
+{"project_id": "Electron", "bug_id": "4", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "6", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "8", "source_type": "github", "label": ["Assignment", "CWE-665: Improper Initialization"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "7", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "5", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "3", "source_type": "github", "label": ["Function/LogicFlow", "CWE-754: Missing Check"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "4", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "9", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "4", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "9", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "1", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "5", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "1", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "10", "source_type": "jira", "label": ["Algorithm", "CWE-573: Logic Mismatch"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "7", "source_type": "jira", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "1", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "6", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "3", "source_type": "jira", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "7", "source_type": "github", "label": ["Interface", "CWE-754: Missing Check"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "5", "source_type": "github", "label": ["Checking", "CWE-754: Missing Check"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "6", "source_type": "jira", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "1", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "2", "source_type": "github", "label": ["Checking", "CWE-754: Missing Check"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "10", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "2", "source_type": "google", "label": ["Checking", "CWE-754: Missing Check"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "2", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "9", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Electron", "bug_id": "8", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Closure", "bug_id": "10", "source_type": "google", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "8", "source_type": "jira", "label": ["Other", "Other"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "6", "source_type": "github", "label": ["Checking", "CWE-754: Missing Check"], "turns_used": 4}
+{"project_id": "Csv", "bug_id": "4", "source_type": "jira", "label": ["Interface", "CWE-1116: Wrong Comments"], "turns_used": 4}
+{"project_id": "Alacritty", "bug_id": "8", "source_type": "github", "label": ["Interface", "CWE-628: API Misuse"], "turns_used": 4}
+{"project_id": "Redis", "bug_id": "3", "source_type": "github", "label": ["Other", "Other"], "turns_used": 4}
