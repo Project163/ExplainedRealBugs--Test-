@@ -110,3 +110,6 @@ url看起来可以通过搜索API得到，但实际也不行，比如我们搜�
 {"project_id": "Alacritty", "bug_id": "3", "source_type": "github", "parsed_data": {"title": "Doesn't shutdown properly from EOF on macOS", "description": "Just open Alacritty and hit ` ` to repro", "comments": []}}
 ```
 其次只截取了Patch的前4000字符，不合理，应该按关键性截取，但由于report中的描述有的特别少（10个单词以内），利用检索关键词或是语义判断确定哪些是关键性的信息也很困难，因此还需要进一步优化Patch的输入方式。
+优化方法可以用小的嵌入模型计算Patch与Report的语义相似度，提取出与Report最相关的Hunk提交给重排序类模型提取出Top-4的关键信息来辅助分类。
+
+但是问题是，清洗过的Patch提交给LLM进行分类时，LLM用多轮交互的方式获取的大量的Patch信息，稀释了LLM的注意力，导致分类准确率反而下降了，出现大量的Other分类。
